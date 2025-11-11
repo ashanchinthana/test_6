@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Ticket</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: Arial, sans-serif; 
+      min-height: 100vh;
+      background: url('/background.jpg') center/cover no-repeat fixed;
+      position: relative;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('/background.jpg') center/cover no-repeat;
+      filter: blur(8px);
+      z-index: -1;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+    .status-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+    }
+    .status-pending {
+      background: rgba(255, 237, 213, 0.95);
+      color: #92400e;
+    }
+    .status-confirmed {
+      background: rgba(236, 253, 245, 0.95);
+      color: #065f46;
+    }
+    .status-rejected {
+      background: rgba(254, 242, 242, 0.95);
+      color: #991b1b;
+    }
+    .ticket-container {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+    }
+    .ticket-image {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .ticket-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .ticket-number {
+      position: absolute;
+      bottom: 45px;
+      right: 50px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+      letter-spacing: 3px;
+      font-family: 'Arial', sans-serif;
+    }
+    .ticket-name {
+      position: absolute;
+      bottom: 120px;
+      left: 60px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    .ticket-userid {
+      position: absolute;
+      bottom: 100px;
+      left: 60px;
+      font-size: 16px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    .loading {
+      color: #fff;
+      font-size: 18px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #2563eb;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .back-link:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+    @media (max-width: 768px) {
+      .ticket-number {
+        bottom: 35px;
+        right: 25px;
+        font-size: 20px;
+        letter-spacing: 2px;
+      }
+      .ticket-name {
+        bottom: 100px;
+        left: 30px;
+        font-size: 16px;
+      }
+      .ticket-userid {
+        bottom: 80px;
+        left: 30px;
+        font-size: 14px;
+      }
+    }
+  </style>
+  <script>
+    async function loadTicket() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketId = urlParams.get('id');
+      
+      if (!ticketId) {
+        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>No ticket ID provided.</p><a href="/" class="back-link">Go Back</a></div></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/ticket/' + encodeURIComponent(ticketId));
+        const ticket = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(ticket.message || 'Failed to load ticket');
+        }
+
+        const container = document.getElementById('ticketContainer');
+        const statusCard = document.getElementById('statusCard');
+        
+        // Update status card
+        statusCard.className = 'status-card status-' + ticket.status;
+        if (ticket.status === 'pending') {
+          statusCard.innerHTML = '<h2>⏳ Pending Approval</h2><p>Your ticket is waiting for admin approval. Please wait a few minutes and refresh this page.</p>';
+        } else if (ticket.status === 'confirmed') {
+          statusCard.innerHTML = '<h2>✅ Ticket Approved!</h2><p>Your ticket has been confirmed. See your ticket below.</p>';
+        } else if (ticket.status === 'rejected') {
+          statusCard.innerHTML = '<h2>❌ Ticket Rejected</h2><p>Your ticket submission was rejected. Please contact support if you believe this is an error.</p>';
+        }
+
+        // Show ticket image with details if confirmed
+        if (ticket.status === 'confirmed' && ticket.ticketNumber) {
+          container.innerHTML = `
+            <div class="ticket-container">
+              <img src="/ticket.png" alt="Ticket" class="ticket-image" />
+              <div class="ticket-overlay">
+                <div class="ticket-number">${escapeHtml(ticket.ticketNumber)}</div>
+                <div class="ticket-name">${escapeHtml(ticket.name)}</div>
+                <div class="ticket-userid">ID: ${escapeHtml(ticket.userId)}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          container.innerHTML = '<div class="loading">Ticket details will appear here once approved.</div>';
+        }
+
+        // Auto-refresh if pending
+        if (ticket.status === 'pending') {
+          setTimeout(() => {
+            loadTicket();
+          }, 30000); // Refresh every 30 seconds
+        }
+      } catch (e) {
+        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>' + escapeHtml(e.message) + '</p><a href="/" class="back-link">Go Back</a></div></div>';
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    window.addEventListener('DOMContentLoaded', loadTicket);
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div id="statusCard" class="status-card">
+      <div class="loading">Loading ticket...</div>
+    </div>
+    <div id="ticketContainer"></div>
+    <a href="/" class="back-link">Submit Another Ticket</a>
+  </div>
+</body>
+</html>
+

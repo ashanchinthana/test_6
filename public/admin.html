@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Pending Tickets</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f7f8; }
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; font-weight: 700; }
+    tr:last-child td { border-bottom: none; }
+    .actions { display: flex; gap: 8px; }
+    button { padding: 8px 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
+    .approve { background: #10b981; color: #fff; }
+    .reject { background: #ef4444; color: #fff; }
+    .link { color: #2563eb; text-decoration: none; }
+    .meta { color: #6b7280; font-size: 12px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; }
+    .nav { display: flex; gap: 12px; margin-bottom: 16px; }
+    .nav a { padding: 8px 16px; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; font-weight: 500; }
+    .nav a:hover { background: #f3f4f6; }
+    .nav a.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .msg { margin: 10px 0; padding: 10px; border-radius: 6px; display: none; }
+    .ok { background: #ecfdf5; color: #065f46; border: 1px solid #34d399; }
+    .err { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  </style>
+  <script>
+    async function fetchPending() {
+      const res = await fetch('/api/admin/pending');
+      if (!res.ok) throw new Error('Failed to fetch pending tickets');
+      return res.json();
+    }
+    function paymentUrl(paymentSlip) {
+      if (!paymentSlip) return '';
+      // stored as 'uploads/<filename>' in DB; ensure leading slash for static hosting
+        return '/' + paymentSlip.replace(/^\/+/, '');
+
+    }
+    function renderRows(tickets) {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+      if (!tickets.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.textContent = 'No pending tickets.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const t of tickets) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(t.name || '')}<div class="meta">${escapeHtml(t.userId || '')}</div></td>
+          <td>${escapeHtml(t.status || '')}<div class="meta">${formatDate(t.createdAt)}</div></td>
+          <td>${t.ticketNumber ? escapeHtml(t.ticketNumber) : '-'}</td>
+          <td>${t.paymentSlip ? ('<a class="link" href="' + paymentUrl(t.paymentSlip) + '" target="_blank" rel="noopener">View Slip</a>') : '-'}</td>
+          <td class="meta">${escapeHtml(t._id || '')}</td>
+          <td class="actions">
+            <button class="approve" onclick="approveTicket('${t._id}')">Approve</button>
+            <button class="reject" onclick="rejectTicket('${t._id}')">Reject</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function formatDate(d) {
+      if (!d) return '';
+      try { return new Date(d).toLocaleString(); } catch { return String(d); }
+    }
+    async function refresh() {
+      setMessage();
+      try {
+        const data = await fetchPending();
+        renderRows(data);
+      } catch (e) {
+        setMessage(e.message || 'Failed to load', true);
+      }
+    }
+    async function approveTicket(id) {
+      setMessage();
+      try {
+        const res = await fetch('/api/admin/approve/' + encodeURIComponent(id), { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Approve failed');
+        alert('Ticket approved! Ticket Number: ' + (data.ticketNumber || '') + '\n\nRedirecting to Approved page...');
+        window.location.href = '/approved.html';
+      } catch (e) {
+        setMessage(e.message || 'Approve failed', true);
+      }
+    }
+    async function rejectTicket(id) {
+      setMessage();
+      try {
+        const res = await fetch('/api/admin/reject/' + encodeURIComponent(id), { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Reject failed');
+        alert('Ticket rejected.\n\nRedirecting to Rejected page...');
+        window.location.href = '/rejected.html';
+      } catch (e) {
+        setMessage(e.message || 'Reject failed', true);
+      }
+    }
+    function setMessage(text = '', isError = false) {
+      const el = document.getElementById('msg');
+      if (!text) { el.style.display = 'none'; el.textContent = ''; el.className = 'msg'; return; }
+      el.textContent = text;
+      el.className = 'msg ' + (isError ? 'err' : 'ok');
+      el.style.display = 'block';
+    }
+    window.addEventListener('DOMContentLoaded', refresh);
+  </script>
+  </head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a href="/admin.html" class="active">Pending</a>
+      <a href="/approved.html">Approved</a>
+      <a href="/rejected.html">Rejected</a>
+    </div>
+    <div class="toolbar">
+      <h1>Pending Tickets (Admin)</h1>
+      <button onclick="refresh()">Refresh</button>
+    </div>
+    <div id="msg" class="msg"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Status / Created</th>
+          <th>Ticket #</th>
+          <th>Payment Slip</th>
+          <th>_id</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</body>
+</html>
+
