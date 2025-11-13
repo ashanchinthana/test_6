@@ -70,6 +70,9 @@
       const msg = document.getElementById('msg');
       msg.style.display = 'none';
       
+      // Persist current inputs before validation so user never loses work
+      saveDraft();
+
       // Validate User ID
       const userId = document.getElementById('userId').value.trim();
       if (!/^\d{12}$/.test(userId)) {
@@ -127,6 +130,8 @@
         msg.className = 'msg ok';
         msg.innerHTML = 'Submitted successfully! Your ticket is pending approval. Please wait a few minutes.<br><br><a href="/ticket.html?id=' + encodeURIComponent(data.ticketId) + '" style="color: #2563eb; text-decoration: underline;">Check Ticket Status</a>';
         msg.style.display = 'block';
+        // Clear saved draft after successful submission
+        localStorage.removeItem('ticketFormDraft');
         form.reset();
       } catch (e) {
         msg.className = 'msg err';
@@ -138,6 +143,43 @@
         btn.textContent = 'Submit';
       }
     }
+
+    // Draft persistence: save and restore text inputs so Back/Reload keeps data
+    function saveDraft() {
+      const draft = {
+        name: document.getElementById('name')?.value || '',
+        userId: document.getElementById('userId')?.value || '',
+        whatsappNumber: document.getElementById('whatsappNumber')?.value || ''
+        // Note: we intentionally do NOT persist paymentSlip for security reasons
+      };
+      try {
+        localStorage.setItem('ticketFormDraft', JSON.stringify(draft));
+      } catch {}
+    }
+
+    function loadDraft() {
+      try {
+        const raw = localStorage.getItem('ticketFormDraft');
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (draft.name) document.getElementById('name').value = draft.name;
+        if (draft.userId) document.getElementById('userId').value = draft.userId;
+        if (draft.whatsappNumber) document.getElementById('whatsappNumber').value = draft.whatsappNumber;
+      } catch {}
+    }
+
+    // Attach listeners once DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDraft();
+      ['name','userId','whatsappNumber'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', saveDraft);
+      });
+      // Prevent form data loss on accidental back/forward cache issues
+      if ('navigation' in performance && performance.navigation.type === 2) {
+        loadDraft();
+      }
+    });
   </script>
 </head>
 <body>
