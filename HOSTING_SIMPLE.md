@@ -58,3 +58,5 @@ Your site is live and friends can submit tickets!
 
 In admin pages, WhatsApp numbers are shown. You can click them to open WhatsApp Web!
 
+
+
