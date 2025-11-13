@@ -1,21 +1,48 @@
 const express = require('express');
 const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
 const fs = require('fs');
 const Ticket = require('../models/ticket');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads'));
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const sanitizedOriginalName = file.originalname.replace(/\s+/g, '-');
-    cb(null, `${timestamp}-${sanitizedOriginalName}`);
+// Configure storage: prefer Cloudinary when credentials are provided; else fallback to local disk
+let storage;
+if (
+  process.env.CLOUDINARY_URL ||
+  (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+) {
+  if (!process.env.CLOUDINARY_URL) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
   }
-});
+  storage = new CloudinaryStorage({
+    cloudinary,
+    params: async (req, file) => {
+      return {
+        folder: 'payment-slips',
+        resource_type: 'auto',
+        public_id: `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`
+      };
+    }
+  });
+} else {
+  storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, path.join(__dirname, '..', 'uploads'));
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now();
+      const sanitizedOriginalName = file.originalname.replace(/\s+/g, '-');
+      cb(null, `${timestamp}-${sanitizedOriginalName}`);
+    }
+  });
+}
 
 const upload = multer({ storage });
 
@@ -32,7 +59,14 @@ router.post('/submit', upload.single('paymentSlip'), async (req, res) => {
       return res.status(400).json({ message: 'User ID must be exactly 12 numbers.' });
     }
 
-    const storedFilePath = path.posix.join('uploads', req.file.filename);
+    // Determine stored path/URL
+    let storedFilePath;
+    if (req.file && req.file.path && req.file.filename && req.file.path.includes('http')) {
+      // Cloudinary returns https URL in file.path
+      storedFilePath = req.file.path;
+    } else if (req.file && req.file.filename) {
+      storedFilePath = path.posix.join('uploads', req.file.filename);
+    }
 
     const ticket = new Ticket({
       name,

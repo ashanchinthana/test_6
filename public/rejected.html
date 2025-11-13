@@ -54,7 +54,14 @@
         tr.innerHTML = `
           <td>${escapeHtml(t.name || '')}<div class="meta">${escapeHtml(t.userId || '')}</div><div class="meta">📱 ${escapeHtml(t.whatsappNumber || '')}</div></td>
           <td>${formatDate(t.createdAt)}</td>
-          <td>${t.paymentSlip ? ('<a class="link" href="' + paymentUrl(t.paymentSlip) + '" target="_blank" rel="noopener">View Slip</a>') : '-'}</td>
+          <td>${
+            t.paymentSlip
+              ? (t.paymentSlip.startsWith('http')
+                  ? '<a class="link" href="' + t.paymentSlip + '" target="_blank" rel="noopener">View Slip</a>'
+                  : ('<a class="link" href="' + paymentUrl(t.paymentSlip) + '" target="_blank" rel="noopener">View Slip</a>')
+                )
+              : '-'
+          }</td>
           <td class="meta">${escapeHtml(t._id || '')}</td>
           <td>
             <span style="color: #ef4444; font-weight: 700;">Rejected</span>
