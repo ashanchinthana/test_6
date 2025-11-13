@@ -11,6 +11,11 @@ const ticketSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  whatsappNumber: {
+    type: String,
+    required: true,
+    trim: true
+  },
   paymentSlip: {
     type: String,
     required: true

@@ -54,7 +54,7 @@
       for (const t of tickets) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(t.name || '')}<div class="meta">${escapeHtml(t.userId || '')}</div></td>
+          <td>${escapeHtml(t.name || '')}<div class="meta">${escapeHtml(t.userId || '')}</div><div class="meta">📱 ${escapeHtml(t.whatsappNumber || '')}</div></td>
           <td>${escapeHtml(t.status || '')}<div class="meta">${formatDate(t.createdAt)}</div></td>
           <td>${t.ticketNumber ? escapeHtml(t.ticketNumber) : '-'}</td>
           <td>${t.paymentSlip ? ('<a class="link" href="' + paymentUrl(t.paymentSlip) + '" target="_blank" rel="noopener">View Slip</a>') : '-'}</td>

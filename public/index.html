@@ -70,6 +70,7 @@
       const msg = document.getElementById('msg');
       msg.style.display = 'none';
       
+      // Validate User ID
       const userId = document.getElementById('userId').value.trim();
       if (!/^\d{12}$/.test(userId)) {
         msg.className = 'msg err';
@@ -78,23 +79,63 @@
         return;
       }
       
+      // Validate WhatsApp Number
+      const whatsappNumber = document.getElementById('whatsappNumber').value.trim();
+      if (!whatsappNumber) {
+        msg.className = 'msg err';
+        msg.textContent = 'WhatsApp number is required';
+        msg.style.display = 'block';
+        return;
+      }
+      
+      // Validate Name
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        msg.className = 'msg err';
+        msg.textContent = 'Name is required';
+        msg.style.display = 'block';
+        return;
+      }
+      
+      // Validate File
+      const fileInput = document.getElementById('paymentSlip');
+      if (!fileInput.files || !fileInput.files[0]) {
+        msg.className = 'msg err';
+        msg.textContent = 'Payment slip file is required';
+        msg.style.display = 'block';
+        return;
+      }
+      
       btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      
       try {
         const form = document.getElementById('ticketForm');
         const formData = new FormData(form);
-        const res = await fetch('/api/submit', { method: 'POST', body: formData });
+        
+        const res = await fetch('/api/submit', { 
+          method: 'POST', 
+          body: formData 
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Submission failed' }));
+          throw new Error(errorData.message || `Server error: ${res.status}`);
+        }
+        
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Submission failed');
         msg.className = 'msg ok';
         msg.innerHTML = 'Submitted successfully! Your ticket is pending approval. Please wait a few minutes.<br><br><a href="/ticket.html?id=' + encodeURIComponent(data.ticketId) + '" style="color: #2563eb; text-decoration: underline;">Check Ticket Status</a>';
         msg.style.display = 'block';
         form.reset();
       } catch (e) {
         msg.className = 'msg err';
-        msg.textContent = e.message || 'Something went wrong';
+        msg.textContent = e.message || 'Something went wrong. Please check your connection and try again.';
         msg.style.display = 'block';
+        console.error('Submission error:', e);
       } finally {
         btn.disabled = false;
+        btn.textContent = 'Submit';
       }
     }
   </script>
@@ -109,6 +150,10 @@
       <label for="userId">User ID</label>
       <input id="userId" name="userId" type="text" placeholder="Enter 12-digit ID" pattern="[0-9]{12}" maxlength="12" required />
       <div class="note">Must be exactly 12 numbers</div>
+
+      <label for="whatsappNumber">WhatsApp Number</label>
+      <input id="whatsappNumber" name="whatsappNumber" type="text" placeholder="Enter WhatsApp number (e.g., +94771234567)" required />
+      <div class="note">Include country code (e.g., +94 for Sri Lanka)</div>
 
       <label for="paymentSlip">Payment Slip (image/PDF)</label>
       <input id="paymentSlip" name="paymentSlip" type="file" accept=".png,.jpg,.jpeg,.pdf" required />

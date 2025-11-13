@@ -21,10 +21,10 @@ const upload = multer({ storage });
 
 router.post('/submit', upload.single('paymentSlip'), async (req, res) => {
   try {
-    const { name, userId } = req.body;
+    const { name, userId, whatsappNumber } = req.body;
 
-    if (!name || !userId || !req.file) {
-      return res.status(400).json({ message: 'Name, userId, and payment slip are required.' });
+    if (!name || !userId || !whatsappNumber || !req.file) {
+      return res.status(400).json({ message: 'Name, userId, WhatsApp number, and payment slip are required.' });
     }
 
     // Validate userId: must be exactly 12 digits
@@ -37,6 +37,7 @@ router.post('/submit', upload.single('paymentSlip'), async (req, res) => {
     const ticket = new Ticket({
       name,
       userId,
+      whatsappNumber: whatsappNumber.trim(),
       paymentSlip: storedFilePath
     });
 
