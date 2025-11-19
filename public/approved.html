@@ -23,6 +23,8 @@
     .actions { display: flex; gap: 8px; }
     .delete-btn { background: #ef4444; color: #fff; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
     .delete-btn:hover { background: #dc2626; }
+    .view-btn { background: #10b981; color: #fff; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; margin-right: 4px; }
+    .view-btn:hover { background: #059669; }
     .msg { margin: 10px 0; padding: 10px; border-radius: 6px; display: none; }
     .ok { background: #ecfdf5; color: #065f46; border: 1px solid #34d399; }
     .err { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
@@ -67,6 +69,7 @@
           <td>
             <span style="color: #10b981; font-weight: 700;">Confirmed</span>
             <div class="actions" style="margin-top: 8px;">
+              <button class="view-btn" onclick="viewTicket('${t._id}')">View Ticket</button>
               <button class="delete-btn" onclick="deleteTicket('${t._id}')">Delete</button>
             </div>
           </td>
@@ -89,6 +92,9 @@
       } catch (e) {
         setMessage(e.message || 'Failed to load', true);
       }
+    }
+    function viewTicket(id) {
+      window.open('/ticket.html?id=' + encodeURIComponent(id), '_blank');
     }
     async function deleteTicket(id) {
       if (!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
