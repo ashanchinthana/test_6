@@ -105,21 +105,26 @@
       font-size: 18px;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     }
-    .back-link {
-      display: inline-block;
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
       margin-top: 20px;
+    }
+    .action-btn {
       padding: 10px 20px;
       background: rgba(255, 255, 255, 0.9);
       color: #2563eb;
-      text-decoration: none;
+      border: none;
       border-radius: 6px;
       font-weight: 600;
-      border: none;
       cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
       font-family: Arial, sans-serif;
-      font-size: inherit;
     }
-    .back-link:hover {
+    .action-btn:hover {
       background: rgba(255, 255, 255, 1);
     }
     @media (max-width: 768px) {
@@ -142,12 +147,15 @@
     }
   </style>
   <script>
+    let currentTicket = null;
+    let ticketTemplatePromise;
+
     async function loadTicket() {
       const urlParams = new URLSearchParams(window.location.search);
       const ticketId = urlParams.get('id');
       
       if (!ticketId) {
-        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>No ticket ID provided.</p><a href="/" class="back-link">Go Back</a></div></div>';
+        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>No ticket ID provided.</p><a href="/" class="action-btn">Go Back</a></div></div>';
         return;
       }
 
@@ -164,6 +172,8 @@
         
         // Update status card
         statusCard.className = 'status-card status-' + ticket.status;
+        const downloadBtn = document.getElementById('downloadBtn');
+
         if (ticket.status === 'pending') {
           statusCard.innerHTML = '<h2>⏳ Pending Approval</h2><p>Your ticket is waiting for admin approval. Please wait a few minutes and refresh this page.</p>';
         } else if (ticket.status === 'confirmed') {
@@ -184,8 +194,16 @@
               </div>
             </div>
           `;
+          currentTicket = {
+            ticketNumber: ticket.ticketNumber,
+            name: ticket.name,
+            userId: ticket.userId
+          };
+          if (downloadBtn) downloadBtn.style.display = 'inline-block';
         } else {
           container.innerHTML = '<div class="loading">Ticket details will appear here once approved.</div>';
+          currentTicket = null;
+          if (downloadBtn) downloadBtn.style.display = 'none';
         }
 
         // Auto-refresh if pending
@@ -195,12 +213,75 @@
           }, 30000); // Refresh every 30 seconds
         }
       } catch (e) {
-        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>' + escapeHtml(e.message) + '</p><a href="/" class="back-link">Go Back</a></div></div>';
+        document.body.innerHTML = '<div class="container"><div class="status-card status-rejected"><h2>Error</h2><p>' + escapeHtml(e.message) + '</p><a href="/" class="action-btn">Go Back</a></div></div>';
       }
     }
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function loadTicketTemplate() {
+      if (!ticketTemplatePromise) {
+        ticketTemplatePromise = new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = '/ticket.png';
+        });
+      }
+      return ticketTemplatePromise;
+    }
+
+    async function buildTicketImage(ticket) {
+      const template = await loadTicketTemplate();
+      const canvas = document.createElement('canvas');
+      canvas.width = template.width;
+      canvas.height = template.height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(template, 0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      ctx.textAlign = 'right';
+      ctx.font = `${Math.round(canvas.width * 0.05)}px Arial`;
+      ctx.fillText(ticket.ticketNumber || '', canvas.width - 80, canvas.height - 70);
+
+      ctx.textAlign = 'left';
+      ctx.font = `${Math.round(canvas.width * 0.03)}px Arial`;
+      ctx.fillText(ticket.name || '', 80, canvas.height - 180);
+
+      ctx.font = `${Math.round(canvas.width * 0.028)}px Arial`;
+      ctx.fillText(`ID: ${ticket.userId || ''}`, 80, canvas.height - 140);
+
+      return canvas.toDataURL('image/png');
+    }
+
+    async function downloadCurrentTicket() {
+      if (!currentTicket) {
+        alert('Ticket will be available for download after approval.');
+        return;
+      }
+      try {
+        const dataUrl = await buildTicketImage(currentTicket);
+        const link = document.createElement('a');
+        const safeNumber = (currentTicket.ticketNumber || 'ticket').toString().replace(/[^a-z0-9_-]/gi, '');
+        link.href = dataUrl;
+        link.download = `ticket-${safeNumber || 'download'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error('Download failed:', err);
+        alert('Failed to download ticket. Please try again.');
+      }
     }
 
     window.addEventListener('DOMContentLoaded', loadTicket);
@@ -212,7 +293,10 @@
       <div class="loading">Loading ticket...</div>
     </div>
     <div id="ticketContainer"></div>
-    <button onclick="window.location.reload()" class="back-link">Reload Page</button>
+    <div class="actions">
+      <button onclick="window.location.reload()" class="action-btn">Reload Page</button>
+      <button id="downloadBtn" onclick="downloadCurrentTicket()" class="action-btn" style="display: none;">Download Ticket</button>
+    </div>
   </div>
 </body>
 </html>
