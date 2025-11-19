@@ -124,7 +124,7 @@ Fill in these settings:
 2. Fill the form:
    - Name: Test User
    - User ID: 123456789012
-   - WhatsApp: +94771234567
+   - WhatsApp: 0771234567
    - Payment Slip: Upload any image
 3. Click Submit
 4. Should see success message
