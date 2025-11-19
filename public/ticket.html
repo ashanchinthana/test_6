@@ -114,6 +114,10 @@
       text-decoration: none;
       border-radius: 6px;
       font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      font-size: inherit;
     }
     .back-link:hover {
       background: rgba(255, 255, 255, 1);
@@ -208,7 +212,7 @@
       <div class="loading">Loading ticket...</div>
     </div>
     <div id="ticketContainer"></div>
-    <a href="/" class="back-link">Submit Another Ticket</a>
+    <button onclick="window.location.reload()" class="back-link">Reload Page</button>
   </div>
 </body>
 </html>
