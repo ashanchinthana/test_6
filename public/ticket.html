@@ -244,22 +244,25 @@
       ctx.drawImage(template, 0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = '#ffffff';
-      ctx.textBaseline = 'middle';
+      ctx.textBaseline = 'alphabetic';
       ctx.shadowColor = 'rgba(0,0,0,0.85)';
       ctx.shadowBlur = 6;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
 
+      // Ticket number (bottom right "TICKET NO")
       ctx.textAlign = 'right';
-      ctx.font = `${Math.round(canvas.width * 0.05)}px Arial`;
-      ctx.fillText(ticket.ticketNumber || '', canvas.width - 80, canvas.height - 70);
+      ctx.font = `700 ${Math.round(canvas.width * 0.045)}px Arial`;
+      ctx.fillText(ticket.ticketNumber || '', canvas.width * 0.88, canvas.height * 0.86);
 
+      // Name (left area above price block)
       ctx.textAlign = 'left';
-      ctx.font = `${Math.round(canvas.width * 0.03)}px Arial`;
-      ctx.fillText(ticket.name || '', 80, canvas.height - 180);
+      ctx.font = `700 ${Math.round(canvas.width * 0.038)}px Arial`;
+      ctx.fillText((ticket.name || '').toUpperCase(), canvas.width * 0.12, canvas.height * 0.78);
 
-      ctx.font = `${Math.round(canvas.width * 0.028)}px Arial`;
-      ctx.fillText(`ID: ${ticket.userId || ''}`, 80, canvas.height - 140);
+      // ID below name
+      ctx.font = `600 ${Math.round(canvas.width * 0.032)}px Arial`;
+      ctx.fillText(`ID: ${ticket.userId || ''}`, canvas.width * 0.12, canvas.height * 0.83);
 
       return canvas.toDataURL('image/png');
     }
